@@ -135,12 +135,12 @@ export default function ReviewHelper() {
   };
 
   const handleCopy = async (text, lang, index) => {
+    const tab = window.open(GOOGLE_MAPS_URL, '_blank');
     try {
       await navigator.clipboard.writeText(text);
       setCopiedIndex(`${lang}_${index}`);
       await markAsUsed(lang, index);
       setTimeout(() => setCopiedIndex(null), 2000);
-      setTimeout(() => window.open(GOOGLE_MAPS_URL, '_blank'), 800);
     } catch (error) {
       const textarea = document.createElement('textarea');
       textarea.value = text;
@@ -153,8 +153,8 @@ export default function ReviewHelper() {
         setCopiedIndex(`${lang}_${index}`);
         await markAsUsed(lang, index);
         setTimeout(() => setCopiedIndex(null), 2000);
-        setTimeout(() => window.open(GOOGLE_MAPS_URL, '_blank'), 800);
       } catch (e) {
+        if (tab) tab.close();
         alert('Không thể copy. Vui lòng copy thủ công.');
       }
       document.body.removeChild(textarea);
