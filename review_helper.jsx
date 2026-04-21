@@ -75,6 +75,10 @@ export default function ReviewHelper() {
   const [passwordAction, setPasswordAction] = useState(null);
   const [passwordInput, setPasswordInput] = useState('');
   const [passwordError, setPasswordError] = useState('');
+  const [isAdminUnlocked, setIsAdminUnlocked] = useState(false);
+  const [showAdminModal, setShowAdminModal] = useState(false);
+  const [adminPasswordInput, setAdminPasswordInput] = useState('');
+  const [adminPasswordError, setAdminPasswordError] = useState('');
   const [apiKey, setApiKey] = useState('');
   const [generating, setGenerating] = useState(false);
   const [generateCount, setGenerateCount] = useState(5);
@@ -319,60 +323,78 @@ Chỉ trả về JSON đúng format, KHÔNG markdown, KHÔNG giải thích:
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
       <div className="max-w-4xl mx-auto px-4 py-6 sm:py-10">
 
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 sm:p-7 mb-5">
-          <div className="flex items-start gap-3 mb-4">
-            <div className="bg-gradient-to-br from-orange-400 to-pink-500 p-2.5 rounded-xl shrink-0">
-              <Star className="w-6 h-6 text-white fill-white" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <h1 className="text-xl sm:text-2xl font-bold text-slate-900 leading-tight">
-                Hỗ trợ viết đánh giá
-              </h1>
-              <p className="text-sm text-slate-600 mt-1">Homestay Minciu - Huế, Việt Nam</p>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-2 text-sm text-slate-600 mb-4">
-            <MapPin className="w-4 h-4 mt-0.5 shrink-0 text-slate-400" />
-            <span>04A Nguyễn Thiện Thuật, Phú Xuân, TP. Huế</span>
-          </div>
-
-          <div className="flex flex-col sm:flex-row gap-2">
-            <a
-              href={GOOGLE_MAPS_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex-1 inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-medium px-5 py-3 rounded-xl transition-colors text-sm"
-            >
-              <ExternalLink className="w-4 h-4" />
-              Mở Google Maps
-            </a>
-            <button
-              onClick={() => setShowGenerator(true)}
-              className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-medium px-5 py-3 rounded-xl transition-colors text-sm"
-            >
-              <Sparkles className="w-4 h-4" />
-              Tạo thêm bằng AI
-            </button>
-            <button
-              onClick={handleReset}
-              disabled={resetting}
-              className="inline-flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium px-4 py-3 rounded-xl transition-colors text-sm disabled:opacity-50"
-            >
-              <RefreshCw className={`w-4 h-4 ${resetting ? 'animate-spin' : ''}`} />
-              Reset
-            </button>
-            {generatedTotal > 0 && (
+        {isAdminUnlocked ? (
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 sm:p-7 mb-5">
+            <div className="flex items-start gap-3 mb-4">
+              <div className="bg-gradient-to-br from-orange-400 to-pink-500 p-2.5 rounded-xl shrink-0">
+                <Star className="w-6 h-6 text-white fill-white" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <h1 className="text-xl sm:text-2xl font-bold text-slate-900 leading-tight">
+                  
+                </h1>
+                <p className="text-sm text-slate-600 mt-1">Homestay Minciu - Huế, Việt Nam</p>
+              </div>
               <button
-                onClick={handleDeleteGenerated}
-                className="inline-flex items-center justify-center gap-2 bg-red-50 hover:bg-red-100 text-red-700 font-medium px-4 py-3 rounded-xl transition-colors text-sm"
+                onClick={() => setIsAdminUnlocked(false)}
+                className="text-slate-400 hover:text-slate-600 p-1 shrink-0"
+                title="Khoá lại"
               >
-                <Trash2 className="w-4 h-4" />
-                Xoá AI ({generatedTotal})
+                <X className="w-4 h-4" />
               </button>
-            )}
+            </div>
+
+            <div className="flex items-start gap-2 text-sm text-slate-600 mb-4">
+              <MapPin className="w-4 h-4 mt-0.5 shrink-0 text-slate-400" />
+              <span>04A Nguyễn Thiện Thuật, Phú Xuân, TP. Huế</span>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-2">
+              <a
+                href={GOOGLE_MAPS_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-medium px-5 py-3 rounded-xl transition-colors text-sm"
+              >
+                <ExternalLink className="w-4 h-4" />
+                Mở Google Maps
+              </a>
+              <button
+                onClick={() => setShowGenerator(true)}
+                className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-medium px-5 py-3 rounded-xl transition-colors text-sm"
+              >
+                <Sparkles className="w-4 h-4" />
+                Tạo thêm bằng AI
+              </button>
+              <button
+                onClick={handleReset}
+                disabled={resetting}
+                className="inline-flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium px-4 py-3 rounded-xl transition-colors text-sm disabled:opacity-50"
+              >
+                <RefreshCw className={`w-4 h-4 ${resetting ? 'animate-spin' : ''}`} />
+                Reset
+              </button>
+              {generatedTotal > 0 && (
+                <button
+                  onClick={handleDeleteGenerated}
+                  className="inline-flex items-center justify-center gap-2 bg-red-50 hover:bg-red-100 text-red-700 font-medium px-4 py-3 rounded-xl transition-colors text-sm"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Xoá AI ({generatedTotal})
+                </button>
+              )}
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="flex justify-end mb-5">
+            <button
+              onClick={() => { setAdminPasswordInput(''); setAdminPasswordError(''); setShowAdminModal(true); }}
+              className="px-3 py-1.5 text-xs font-medium text-slate-400 hover:text-slate-600 hover:bg-white hover:shadow-sm rounded-lg transition-all"
+            >
+              Admin
+            </button>
+          </div>
+        )}
 
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-5 flex gap-3">
           <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
@@ -504,6 +526,59 @@ Chỉ trả về JSON đúng format, KHÔNG markdown, KHÔNG giải thích:
           <p>Trạng thái "đã sử dụng" và đánh giá AI được chia sẻ giữa tất cả người dùng</p>
         </div>
       </div>
+
+      {showAdminModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-sm p-6">
+            <h2 className="font-bold text-slate-900 mb-1">Quản lý</h2>
+            <p className="text-sm text-slate-500 mb-4">Nhập mật khẩu để mở tính năng quản lý.</p>
+            <input
+              type="password"
+              value={adminPasswordInput}
+              onChange={(e) => { setAdminPasswordInput(e.target.value); setAdminPasswordError(''); }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  if (adminPasswordInput === '2011') {
+                    setIsAdminUnlocked(true);
+                    setShowAdminModal(false);
+                    setAdminPasswordInput('');
+                  } else {
+                    setAdminPasswordError('Mật khẩu không đúng');
+                  }
+                }
+              }}
+              placeholder="Mật khẩu"
+              autoFocus
+              className={`w-full px-3 py-2.5 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 mb-2 ${
+                adminPasswordError ? 'border-red-400' : 'border-slate-300'
+              }`}
+            />
+            {adminPasswordError && <p className="text-xs text-red-600 mb-3">{adminPasswordError}</p>}
+            <div className="flex gap-2 mt-3">
+              <button
+                onClick={() => setShowAdminModal(false)}
+                className="flex-1 px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
+              >
+                Huỷ
+              </button>
+              <button
+                onClick={() => {
+                  if (adminPasswordInput === '2011') {
+                    setIsAdminUnlocked(true);
+                    setShowAdminModal(false);
+                    setAdminPasswordInput('');
+                  } else {
+                    setAdminPasswordError('Mật khẩu không đúng');
+                  }
+                }}
+                className="flex-1 px-4 py-2 text-sm font-medium text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors"
+              >
+                Xác nhận
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showPasswordModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
