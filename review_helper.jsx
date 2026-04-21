@@ -69,8 +69,10 @@ export default function ReviewHelper() {
 
   const [reviews, setReviews] = useState(DEFAULT_REVIEWS);
   const [customReviews, setCustomReviews] = useState({ vi: [], en: [], ko: [] });
+  const [pinnedReview, setPinnedReview] = useState(null);
 
   const [showGenerator, setShowGenerator] = useState(false);
+  const [showList, setShowList] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [passwordAction, setPasswordAction] = useState(null);
   const [passwordInput, setPasswordInput] = useState('');
@@ -88,6 +90,11 @@ export default function ReviewHelper() {
   useEffect(() => {
     loadData();
   }, []);
+
+  useEffect(() => {
+    if (loading) return;
+    pickRandom();
+  }, [loading]);
 
   const loadData = async () => {
     setLoading(true);
@@ -311,6 +318,17 @@ Chỉ trả về JSON đúng format, KHÔNG markdown, KHÔNG giải thích:
 
   const handleDeleteGenerated = () => openPasswordModal('deleteAI');
 
+  const pickRandom = () => {
+    const allAvailable = Object.keys(reviews).flatMap(lang =>
+      reviews[lang].items
+        .map((item, i) => ({ item, i, lang }))
+        .filter(({ i }) => !usedReviews[`${lang}_${i}`])
+    );
+    if (allAvailable.length === 0) { setPinnedReview(null); return; }
+    const picked = allAvailable[Math.floor(Math.random() * allAvailable.length)];
+    setPinnedReview({ text: picked.item, index: picked.i, lang: picked.lang });
+  };
+
   const currentReviews = reviews[activeLang].items
     .map((item, i) => ({ item, i }))
     .sort((a, b) => (!!usedReviews[`${activeLang}_${a.i}`]) - (!!usedReviews[`${activeLang}_${b.i}`]));
@@ -323,7 +341,7 @@ Chỉ trả về JSON đúng format, KHÔNG markdown, KHÔNG giải thích:
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
       <div className="max-w-4xl mx-auto px-4 py-6 sm:py-10">
 
-        {isAdminUnlocked ? (
+        {isAdminUnlocked && (
           <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 sm:p-7 mb-5">
             <div className="flex items-start gap-3 mb-4">
               <div className="bg-gradient-to-br from-orange-400 to-pink-500 p-2.5 rounded-xl shrink-0">
@@ -347,6 +365,22 @@ Chỉ trả về JSON đúng format, KHÔNG markdown, KHÔNG giải thích:
             <div className="flex items-start gap-2 text-sm text-slate-600 mb-4">
               <MapPin className="w-4 h-4 mt-0.5 shrink-0 text-slate-400" />
               <span>04A Nguyễn Thiện Thuật, Phú Xuân, TP. Huế</span>
+            </div>
+
+            <div className="flex items-center gap-3 mb-4 px-1">
+              <Globe className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+              <div className="flex-1">
+                <div className="flex justify-between text-xs text-slate-500 mb-1">
+                  <span>Đã sử dụng</span>
+                  <strong className="text-slate-700">{usedCount}/{totalCount}</strong>
+                </div>
+                <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-blue-500 to-blue-600 transition-all duration-300"
+                    style={{ width: `${totalCount > 0 ? (usedCount / totalCount) * 100 : 0}%` }}
+                  />
+                </div>
+              </div>
             </div>
 
             <div className="flex flex-col sm:flex-row gap-2">
@@ -385,26 +419,35 @@ Chỉ trả về JSON đúng format, KHÔNG markdown, KHÔNG giải thích:
               )}
             </div>
           </div>
-        ) : (
-          <div className="flex justify-end mb-5">
+        )}
+
+        {!loading && pinnedReview && (
+          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-2xl p-4 sm:p-5 mb-5">
+            <div className="flex items-center justify-between mb-3">
+              <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-700 bg-blue-100 px-2.5 py-1 rounded-full">
+                <Sparkles className="w-3 h-3" />
+                Gợi ý cho bạn &middot; {reviews[pinnedReview.lang]?.flag}
+              </span>
+              <button onClick={pickRandom} className="inline-flex items-center gap-1 text-xs text-slate-400 hover:text-slate-600 transition-colors">
+                <RefreshCw className="w-3.5 h-3.5" />
+                Khác
+              </button>
+            </div>
+            <p className="text-sm sm:text-base text-slate-800 leading-relaxed mb-4">{pinnedReview.text}</p>
             <button
-              onClick={() => { setAdminPasswordInput(''); setAdminPasswordError(''); setShowAdminModal(true); }}
-              className="px-3 py-1.5 text-xs font-medium text-slate-400 hover:text-slate-600 hover:bg-white hover:shadow-sm rounded-lg transition-all"
+              onClick={() => { handleCopy(pinnedReview.text, pinnedReview.lang, pinnedReview.index); pickRandom(); }}
+              className={`w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-medium text-sm transition-all ${
+                copiedIndex === `${pinnedReview.lang}_${pinnedReview.index}`
+                  ? 'bg-green-600 text-white'
+                  : 'bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800'
+              }`}
             >
-              Admin
+              {copiedIndex === `${pinnedReview.lang}_${pinnedReview.index}`
+                ? <><Check className="w-4 h-4" />Đã copy!</>
+                : <><Copy className="w-4 h-4" />Copy và viết đánh giá</>}
             </button>
           </div>
         )}
-
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-5 flex gap-3">
-          <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-          <div className="text-sm text-amber-900">
-            <p className="font-medium mb-1">Cách sử dụng</p>
-            <p className="text-amber-800 leading-relaxed">
-              Chọn câu đánh giá, nhấn <strong>Copy</strong>, rồi dán vào Google Maps. .
-            </p>
-          </div>
-        </div>
 
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-5">
           <div className="flex border-b border-slate-200">
@@ -430,28 +473,29 @@ Chỉ trả về JSON đúng format, KHÔNG markdown, KHÔNG giải thích:
             })}
           </div>
 
-          <div className="px-5 pt-4 pb-2">
-            <div className="flex items-center justify-between text-xs text-slate-500 mb-1.5">
-              <span className="flex items-center gap-1.5">
-                <Globe className="w-3.5 h-3.5" />
-                Đã sử dụng: <strong className="text-slate-700">{usedCount}/{totalCount}</strong>
-              </span>
-            </div>
-            <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-gradient-to-r from-blue-500 to-blue-600 transition-all duration-300"
-                style={{ width: `${totalCount > 0 ? (usedCount / totalCount) * 100 : 0}%` }}
-              />
-            </div>
-          </div>
         </div>
+
+
+        <button
+          onClick={() => setShowList(v => !v)}
+          className="w-full flex items-center justify-between px-4 py-3 bg-white rounded-xl border border-slate-200 shadow-sm hover:border-blue-300 hover:shadow-md transition-all text-sm font-medium text-slate-700 mb-3"
+        >
+          <span className="flex items-center gap-2">
+            <Globe className="w-4 h-4 text-slate-400" />
+            Xem tất cả đánh giá
+          </span>
+          <span className="flex items-center gap-1.5 text-xs text-slate-400">
+            {totalCount} đánh giá
+            <svg className={`w-4 h-4 transition-transform ${showList ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+          </span>
+        </button>
 
         {loading ? (
           <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-10 text-center">
             <Loader2 className="w-6 h-6 text-blue-600 animate-spin mx-auto mb-3" />
             <p className="text-sm text-slate-500">Đang tải dữ liệu...</p>
           </div>
-        ) : (
+        ) : showList ? (
           <div className="space-y-3">
             {currentReviews.map(({ item: review, i: index }, displayIndex) => {
               const key = `${activeLang}_${index}`;
@@ -473,12 +517,6 @@ Chỉ trả về JSON đúng format, KHÔNG markdown, KHÔNG giải thích:
                       }`}>
                         {displayIndex + 1}
                       </div>
-                      {isAIGenerated && (
-                        <span className="inline-flex items-center gap-1 bg-purple-100 text-purple-700 text-xs px-2.5 py-1 rounded-full font-medium">
-                          <Sparkles className="w-3 h-3" />
-                          AI tạo
-                        </span>
-                      )}
                       {isUsed && (
                         <span className="inline-flex items-center gap-1 bg-slate-100 text-slate-600 text-xs px-2.5 py-1 rounded-full font-medium">
                           <Check className="w-3 h-3" />
@@ -511,7 +549,7 @@ Chỉ trả về JSON đúng format, KHÔNG markdown, KHÔNG giải thích:
                       ) : (
                         <>
                           <Copy className="w-4 h-4" />
-                          {isUsed ? 'Copy lại' : 'Copy vào clipboard'}
+                          Copy và viết đánh giá
                         </>
                       )}
                     </button>
@@ -520,10 +558,24 @@ Chỉ trả về JSON đúng format, KHÔNG markdown, KHÔNG giải thích:
               );
             })}
           </div>
-        )}
+        ) : null}
 
         <div className="text-center text-xs text-slate-400 mt-8 pb-4">
-          <p>Trạng thái "đã sử dụng" và đánh giá AI được chia sẻ giữa tất cả người dùng</p>
+          {isAdminUnlocked ? (
+            <button
+              onClick={() => setIsAdminUnlocked(false)}
+              className="mt-2 text-xs text-slate-400 hover:text-slate-600 underline"
+            >
+              Thoát Admin
+            </button>
+          ) : (
+            <button
+              onClick={() => { setAdminPasswordInput(''); setAdminPasswordError(''); setShowAdminModal(true); }}
+              className="mt-2 text-xs text-slate-300 hover:text-slate-500 transition-colors"
+            >
+              Admin
+            </button>
+          )}
         </div>
       </div>
 
