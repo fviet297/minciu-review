@@ -71,6 +71,10 @@ export default function ReviewHelper() {
   const [customReviews, setCustomReviews] = useState({ vi: [], en: [], ko: [] });
 
   const [showGenerator, setShowGenerator] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [passwordAction, setPasswordAction] = useState(null);
+  const [passwordInput, setPasswordInput] = useState('');
+  const [passwordError, setPasswordError] = useState('');
   const [apiKey, setApiKey] = useState('');
   const [generating, setGenerating] = useState(false);
   const [generateCount, setGenerateCount] = useState(5);
@@ -161,20 +165,44 @@ export default function ReviewHelper() {
     }
   };
 
-  const handleReset = async () => {
-    if (!confirm('Bạn có chắc muốn xoá toàn bộ trạng thái "đã sử dụng"? Thao tác này áp dụng cho tất cả người dùng.')) {
+  const openPasswordModal = (action) => {
+    setPasswordAction(action);
+    setPasswordInput('');
+    setPasswordError('');
+    setShowPasswordModal(true);
+  };
+
+  const handlePasswordSubmit = async () => {
+    if (passwordInput !== '2011') {
+      setPasswordError('Mật khẩu không đúng');
       return;
     }
-    setResetting(true);
-    try {
-      await window.storage.delete('used_reviews', true);
-      setUsedReviews({});
-    } catch (error) {
-      console.error('Lỗi reset:', error);
-    } finally {
-      setResetting(false);
+    setShowPasswordModal(false);
+    setPasswordInput('');
+    if (passwordAction === 'reset') {
+      setResetting(true);
+      try {
+        await window.storage.delete('used_reviews', true);
+        setUsedReviews({});
+      } catch (error) {
+        console.error('Lỗi reset:', error);
+      } finally {
+        setResetting(false);
+      }
+    } else if (passwordAction === 'deleteAI') {
+      try {
+        await window.storage.delete('custom_reviews', true);
+        setCustomReviews({ vi: [], en: [], ko: [] });
+        setReviews(DEFAULT_REVIEWS);
+        setGenerateSuccess('Đã xoá toàn bộ đánh giá AI tạo');
+        setTimeout(() => setGenerateSuccess(''), 3000);
+      } catch (e) {
+        console.error('Lỗi xoá:', e);
+      }
     }
   };
+
+  const handleReset = () => openPasswordModal('reset');
 
   const saveApiKey = async (key) => {
     setApiKey(key);
@@ -277,24 +305,13 @@ Chỉ trả về JSON đúng format, KHÔNG markdown, KHÔNG giải thích:
     }
   };
 
-  const handleDeleteGenerated = async () => {
-    if (!confirm('Xoá toàn bộ đánh giá đã được AI tạo ra? Thao tác này áp dụng cho tất cả người dùng.')) {
-      return;
-    }
-    try {
-      await window.storage.delete('custom_reviews', true);
-      setCustomReviews({ vi: [], en: [], ko: [] });
-      setReviews(DEFAULT_REVIEWS);
-      setGenerateSuccess('Đã xoá toàn bộ đánh giá AI tạo');
-      setTimeout(() => setGenerateSuccess(''), 3000);
-    } catch (e) {
-      console.error('Lỗi xoá:', e);
-    }
-  };
+  const handleDeleteGenerated = () => openPasswordModal('deleteAI');
 
-  const currentReviews = reviews[activeLang].items;
+  const currentReviews = reviews[activeLang].items
+    .map((item, i) => ({ item, i }))
+    .sort((a, b) => (!!usedReviews[`${activeLang}_${a.i}`]) - (!!usedReviews[`${activeLang}_${b.i}`]));
   const defaultCount = DEFAULT_REVIEWS[activeLang].items.length;
-  const usedCount = currentReviews.filter((_, i) => usedReviews[`${activeLang}_${i}`]).length;
+  const usedCount = currentReviews.filter(({ i }) => usedReviews[`${activeLang}_${i}`]).length;
   const totalCount = currentReviews.length;
   const generatedTotal = Object.values(customReviews).reduce((sum, arr) => sum + (arr?.length || 0), 0);
 
@@ -337,6 +354,23 @@ Chỉ trả về JSON đúng format, KHÔNG markdown, KHÔNG giải thích:
               <Sparkles className="w-4 h-4" />
               Tạo thêm bằng AI
             </button>
+            <button
+              onClick={handleReset}
+              disabled={resetting}
+              className="inline-flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium px-4 py-3 rounded-xl transition-colors text-sm disabled:opacity-50"
+            >
+              <RefreshCw className={`w-4 h-4 ${resetting ? 'animate-spin' : ''}`} />
+              Reset
+            </button>
+            {generatedTotal > 0 && (
+              <button
+                onClick={handleDeleteGenerated}
+                className="inline-flex items-center justify-center gap-2 bg-red-50 hover:bg-red-100 text-red-700 font-medium px-4 py-3 rounded-xl transition-colors text-sm"
+              >
+                <Trash2 className="w-4 h-4" />
+                Xoá AI ({generatedTotal})
+              </button>
+            )}
           </div>
         </div>
 
@@ -397,7 +431,7 @@ Chỉ trả về JSON đúng format, KHÔNG markdown, KHÔNG giải thích:
           </div>
         ) : (
           <div className="space-y-3">
-            {currentReviews.map((review, index) => {
+            {currentReviews.map(({ item: review, i: index }, displayIndex) => {
               const key = `${activeLang}_${index}`;
               const isUsed = !!usedReviews[key];
               const isCopied = copiedIndex === key;
@@ -415,7 +449,7 @@ Chỉ trả về JSON đúng format, KHÔNG markdown, KHÔNG giải thích:
                       <div className={`shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold ${
                         isUsed ? 'bg-slate-100 text-slate-500' : 'bg-blue-100 text-blue-700'
                       }`}>
-                        {index + 1}
+                        {displayIndex + 1}
                       </div>
                       {isAIGenerated && (
                         <span className="inline-flex items-center gap-1 bg-purple-100 text-purple-700 text-xs px-2.5 py-1 rounded-full font-medium">
@@ -470,6 +504,43 @@ Chỉ trả về JSON đúng format, KHÔNG markdown, KHÔNG giải thích:
           <p>Trạng thái "đã sử dụng" và đánh giá AI được chia sẻ giữa tất cả người dùng</p>
         </div>
       </div>
+
+      {showPasswordModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-sm p-6">
+            <h2 className="font-bold text-slate-900 mb-1">
+              {passwordAction === 'reset' ? 'Reset trạng thái đã dùng' : 'Xoá đánh giá AI'}
+            </h2>
+            <p className="text-sm text-slate-500 mb-4">Nhập mật khẩu để xác nhận thao tác này.</p>
+            <input
+              type="password"
+              value={passwordInput}
+              onChange={(e) => { setPasswordInput(e.target.value); setPasswordError(''); }}
+              onKeyDown={(e) => e.key === 'Enter' && handlePasswordSubmit()}
+              placeholder="Mật khẩu"
+              autoFocus
+              className="w-full px-3 py-2.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-2"
+            />
+            {passwordError && (
+              <p className="text-xs text-red-600 mb-3">{passwordError}</p>
+            )}
+            <div className="flex gap-2 mt-3">
+              <button
+                onClick={() => setShowPasswordModal(false)}
+                className="flex-1 px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
+              >
+                Huỷ
+              </button>
+              <button
+                onClick={handlePasswordSubmit}
+                className="flex-1 px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
+              >
+                Xác nhận
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showGenerator && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
