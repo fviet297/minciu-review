@@ -52,7 +52,7 @@ const DEFAULT_REVIEWS = {
   }
 };
 
-const GOOGLE_MAPS_URL = "https://www.google.com/maps/search/?api=1&query=Homestay+Minciu+04A+Nguyen+Thien+Thuat+Hue";
+const GOOGLE_MAPS_URL = "https://search.google.com/local/writereview?placeid=ChIJZxp0GwCnQTER-7QcG9TytJ4";
 
 const LANG_PROMPT_MAP = {
   vi: 'tiếng Việt (giọng điệu tự nhiên, thân mật như người Việt Nam trẻ viết review, có thể dùng "mình/tớ/bạn")',
